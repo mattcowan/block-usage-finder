@@ -43,15 +43,6 @@ Find Blocks, Patterns & Shortcodes locates content containing specific Gutenberg
 * XSS and injection prevention
 * Nonce auto-refresh for long sessions
 
-= Accessibility =
-
-* Screen reader compatible with ARIA live regions
-* Full keyboard navigation support
-* Visible focus indicators
-* Form labels for all inputs
-* Results count announcements
-* Responsive design with 200% zoom support
-
 == Installation ==
 
 1. Upload the plugin files to `/wp-content/plugins/find-blocks-patterns-shortcodes/`

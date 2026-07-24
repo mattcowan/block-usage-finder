@@ -1,0 +1,54 @@
+# CI: version-consistency guard + PHP lint on every push and pull request.
+#
+# This is a single-file plugin with no build step, so there is nothing to
+# compile — CI just proves the three version sources agree and the PHP
+# parses. Run this workflow manually (Actions → CI → Run workflow) to get an
+# installable plugin zip as a build artifact — the on-demand substitute for
+# nightly builds. See RELEASING.md § On-demand builds.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: Version guard + PHP lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The three version sources (plugin header, FBPS_VERSION, readme
+      # Stable tag) must always agree — fail fast if not. Node is preinstalled
+      # on the runner and the script has zero dependencies, so no npm needed.
+      - name: Version consistency check
+        run: node scripts/check-versions.cjs
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+      - name: PHP lint
+        run: php -l find-blocks-patterns-shortcodes.php
+
+      # On manual runs, also package an installable zip (respecting
+      # .distignore) and attach it as an artifact (kept 7 days) — grab a test
+      # build from any branch on demand.
+      - name: Package on-demand zip
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          slug=find-blocks-patterns-shortcodes
+          grep -vE '^\s*(#|$)' .distignore > .distignore.clean
+          mkdir -p "build/$slug"
+          rsync -a --exclude-from=.distignore.clean \
+            --exclude '.git' --exclude 'build' --exclude '.distignore.clean' \
+            ./ "build/$slug/"
+          ( cd build && zip -qr "../$slug.zip" "$slug" )
+      - name: Upload zip artifact
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: find-blocks-patterns-shortcodes-${{ github.sha }}
+          path: find-blocks-patterns-shortcodes.zip
+          retention-days: 7

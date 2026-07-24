@@ -1,0 +1,84 @@
+# Release deploy: runs when a GitHub Release is PUBLISHED (not on tag push —
+# publishing through the Releases UI forces human-written release notes, and
+# a stray `git push --tags` can never deploy to WordPress.org by accident).
+#
+#   Stable release (tag vX.Y.Z, "pre-release" unchecked):
+#     version guard → deploy to wp.org SVN (trunk + tags/X.Y.Z + assets) →
+#     attach the deployed zip to the GitHub Release.
+#
+#   Pre-release / beta (tag vX.Y.Z-beta.N, "pre-release" CHECKED):
+#     version guard → attach an installable zip to the GitHub Release only.
+#     WordPress.org is never touched — betas live on GitHub by design.
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   SVN_USERNAME — wordpress.org username
+#   SVN_PASSWORD — wp.org SVN password (see RELEASING.md § One-time setup)
+name: Release Deploy
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  # Needed to upload the zip asset to the GitHub Release.
+  contents: write
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Fail BEFORE touching SVN if the plugin header, FBPS_VERSION, and
+      # readme Stable tag don't match the release tag. Zero-dependency Node
+      # script — no npm install needed.
+      - name: Version guard (stable)
+        if: ${{ !github.event.release.prerelease }}
+        run: node scripts/check-versions.cjs "${{ github.event.release.tag_name }}"
+      - name: Version guard (pre-release)
+        if: ${{ github.event.release.prerelease }}
+        run: node scripts/check-versions.cjs "${{ github.event.release.tag_name }}" --prerelease
+
+      # ----- Stable releases: deploy to WordPress.org -----
+      # SLUG is explicit and critical: the action defaults to the GitHub repo
+      # name (find-blocks-patterns-and-shortcodes — note the "and"), which is
+      # NOT the wp.org slug. The action rsyncs the checkout minus .distignore
+      # into SVN trunk, copies trunk to tags/X.Y.Z, and syncs .wordpress-org/
+      # into assets/.
+      - name: Deploy to WordPress.org
+        if: ${{ !github.event.release.prerelease }}
+        id: wporg
+        uses: 10up/action-wordpress-plugin-deploy@stable
+        with:
+          generate-zip: true
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: find-blocks-patterns-shortcodes
+
+      - name: Attach deployed zip to the GitHub Release
+        if: ${{ !github.event.release.prerelease }}
+        run: gh release upload "${{ github.event.release.tag_name }}" "${{ steps.wporg.outputs.zip-path }}" --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      # ----- Pre-releases (beta): zip only, wp.org untouched -----
+      # Build the installable zip locally, respecting .distignore, so the beta
+      # zip matches the wp.org layout (slug as the top folder).
+      - name: Package beta zip
+        if: ${{ github.event.release.prerelease }}
+        run: |
+          slug=find-blocks-patterns-shortcodes
+          grep -vE '^\s*(#|$)' .distignore > .distignore.clean
+          mkdir -p "build/$slug"
+          rsync -a --exclude-from=.distignore.clean \
+            --exclude '.git' --exclude 'build' --exclude '.distignore.clean' \
+            ./ "build/$slug/"
+          ( cd build && zip -qr "../$slug.zip" "$slug" )
+
+      - name: Attach beta zip to the GitHub Release
+        if: ${{ github.event.release.prerelease }}
+        run: gh release upload "${{ github.event.release.tag_name }}" find-blocks-patterns-shortcodes.zip --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -1,5 +1,12 @@
 # Build Instructions
 
+> **⚠️ Superseded by the CI/CD pipeline — see [RELEASING.md](RELEASING.md).**
+> Releases now go out through GitHub Actions (publish a GitHub Release →
+> deploy to WordPress.org SVN). The local build scripts below still work for
+> producing a zip on your own machine, but they are no longer the release
+> path, and some details in this file are out of date. For anything you hand
+> to someone, prefer the traceable on-demand CI build (RELEASING.md § 8).
+
 This document explains how to create a release-ready package for WordPress.org submission.
 
 ## Build Scripts Available
