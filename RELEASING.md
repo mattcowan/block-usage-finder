@@ -90,7 +90,7 @@ permissions can stay **read-only** — `release-deploy.yml` requests
 
 ## 4. Standard release checklist (stable)
 
-1. **Bump the version in all three places** (check-versions.js enforces this):
+1. **Bump the version in all three places** (check-versions.cjs enforces this):
    - `find-blocks-patterns-shortcodes.php` — plugin header `Version:`
    - `find-blocks-patterns-shortcodes.php` — `define('FBPS_VERSION', ...)`
    - `readme.txt` — `Stable tag:`

@@ -26,9 +26,13 @@ jobs:
       - name: Version consistency check
         run: node scripts/check-versions.cjs
 
+      # Lint on the plugin's DECLARED minimum (Requires PHP: 7.0), not a newer
+      # version — otherwise 7.1+-only syntax would pass CI but fatal-error for
+      # users on 7.0. `php -l` is a parse check, so the floor is the version
+      # that matters.
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '7.4'
+          php-version: '7.0'
       - name: PHP lint
         run: php -l find-blocks-patterns-shortcodes.php
 
