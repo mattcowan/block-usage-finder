@@ -1,0 +1,42 @@
+# .distignore — the single source of truth for what does NOT ship to users.
+#
+# Everything not excluded here IS distributed: to WordPress.org SVN trunk by
+# the release workflow (10up/action-wordpress-plugin-deploy), and into the
+# beta / on-demand zip built by the workflows. Gitignore-style syntax. When
+# you add a new dev-only file or folder, add it here; new production files
+# ship automatically without touching anything.
+#
+# What SHIPS: find-blocks-patterns-shortcodes.php, readme.txt, assets/, LICENSE.
+
+# --- VCS / CI / tooling directories ---
+/.git
+/.github
+/.wordpress-org
+/.claude
+/scripts
+/build
+
+# --- local build scripts (release is via CI / wp.org now) ---
+/build.ps1
+/build.sh
+/build.bat
+
+# --- root config / dev files ---
+/.gitignore
+/.gitattributes
+/.distignore
+
+# --- docs that live on GitHub, not in the distributed plugin ---
+# (readme.txt DOES ship — it is the WordPress.org listing.)
+/BUILD-README.md
+/CLAUDE.md
+/README.md
+/RELEASING.md
+/FIND-TEXT-SPEC.md
+/Security.md
+
+# --- misc ---
+*.zip
+*.log
+.DS_Store
+Thumbs.db
